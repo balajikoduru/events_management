@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ event.title }} - EventRSVP{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Event Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1>{{ event.title }}</h1>
+            <p class="text-muted">
+                Organized by {{ event.created_by.username }} on {{ event.created_at|date:"F d, Y" }}
+            </p>
+            
+            {% if is_creator %}
+            <div class="mb-3">
+                <a href="{% url 'event_update' pk=event.id %}" class="btn btn-outline-primary me-2">
+                    <i class="fas fa-edit me-1"></i> Edit Event
+                </a>
+                <a href="{% url 'invite_to_event' pk=event.id %}" class="btn btn-outline-success me-2">
+                    <i class="fas fa-envelope me-1"></i> Invite People
+                </a>
+                <a href="{% url 'event_invitations' pk=event.id %}" class="btn btn-outline-info me-2">
+                    <i class="fas fa-users me-1"></i> Manage Guests
+                </a>
+                {% if not event.is_past %}
+                <a href="{% url 'scan_qr' pk=event.id %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-qrcode me-1"></i> Scan QR
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+            
+            {% if is_invited and not event.is_past %}
+            <div class="mb-3">
+                {% if invitation.status == 'pending' %}
+                <a href="{% url 'rsvp' uuid=invitation.uuid %}" class="btn btn-primary">
+                    <i class="fas fa-reply me-1"></i> RSVP Now
+                </a>
+                {% elif invitation.status == 'accepted' %}
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle me-1"></i> You're attending this event
+                </div>
+                {% elif invitation.status == 'declined' %}
+                <div class="alert alert-secondary">
+                    <i class="fas fa-times-circle me-1"></i> You've declined this event
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Event Details</h5>
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <i class="fas fa-calendar me-2"></i>
+                            <strong>Date:</strong> {{ event.start_date|date:"l, F d, Y" }}
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-clock me-2"></i>
+                            <strong>Time:</strong> {{ event.start_date|date:"g:i A" }} - {{ event.end_date|date:"g:i A" }}
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-map-marker-alt me-2"></i>
+                            <strong>Location:</strong> {{ event.location }}
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-users me-2"></i>
+                            <strong>Capacity:</strong> 
+                            {% if event.capacity == 0 %}
+                                Unlimited
+                            {% else %}
+                                {{ event.attendee_count }} / {{ event.capacity }}
+                            {% endif %}
+                        </li>
+                        <li>
+                            <i class="fas fa-globe me-2"></i>
+                            <strong>Visibility:</strong> 
+                            {% if event.is_public %}
+                                Public
+                            {% else %}
+                                Private
+                            {% endif %}
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Event Image and Description -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">About This Event</h5>
+                    <p class="card-text">{{ event.description|linebreaks }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            {% if event.image %}
+            <img src="{{ event.image.url }}" class="img-fluid rounded" alt="{{ event.title }}">
+            {% else %}
+            <div class="bg-secondary text-white d-flex align-items-center justify-content-center rounded" style="height: 200px;">
+                <i class="fas fa-calendar-day fa-5x"></i>
+            </div>
+            {% endif %}
+            
+            {% if is_invited and invitation.status == 'accepted' and not event.is_past %}
+            <div class="mt-3">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">Your Check-in QR Code</h5>
+                        <img src="{{ invitation.qr_code.url }}" class="img-fluid" alt="QR Code">
+                        <p class="card-text mt-2">Show this QR code at the event entrance</p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Attendees Section -->
+    <div class="row">
+        <div class="col-12">
+            <h3 class="mb-3">Attendees ({{ attendees.count }})</h3>
+            {% if attendees %}
+            <div class="row row-cols-2 row-cols-md-4 row-cols-lg-6 g-3">
+                {% for attendee in attendees %}
+                <div class="col">
+                    <div class="card h-100 text-center">
+                        <div class="card-body">
+                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 50px; height: 50px;">
+                                {{ attendee.name|slice:":1" }}
+                            </div>
+                            <h6 class="card-title">{{ attendee.name }}</h6>
+                            {% if is_creator %}
+                            <p class="card-text small text-muted">{{ attendee.email }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                No attendees yet.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - EventRSVP{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Dashboard</h1>
+    
+    <!-- Filter Controls -->
+    <div class="mb-4">
+        <div class="btn-group" role="group">
+            <a href="{% url 'dashboard' %}?filter=all" class="btn btn-outline-primary {% if event_filter == 'all' %}active{% endif %}">All Events</a>
+            <a href="{% url 'dashboard' %}?filter=upcoming" class="btn btn-outline-primary {% if event_filter == 'upcoming' %}active{% endif %}">Upcoming</a>
+            <a href="{% url 'dashboard' %}?filter=past" class="btn btn-outline-primary {% if event_filter == 'past' %}active{% endif %}">Past</a>
+        </div>
+        <a href="{% url 'event_create' %}" class="btn btn-primary float-end">
+            <i class="fas fa-plus me-1"></i> Create Event
+        </a>
+    </div>
+    
+    <!-- Events You Created -->
+    <h2 class="mb-3">Events You Created</h2>
+    {% if created_events %}
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead class="table-light">
+                <tr>
+                    <th>Event</th>
+                    <th>Date</th>
+                    <th>Location</th>
+                    <th>RSVPs</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for event in created_events %}
+                <tr>
+                    <td>
+                        <a href="{% url 'event_detail' pk=event.id %}" class="text-decoration-none">
+                            {{ event.title }}
+                        </a>
+                    </td>
+                    <td>{{ event.start_date|date:"M d, Y" }}</td>
+                    <td>{{ event.location }}</td>
+                    <td>
+                        <span class="badge bg-success">{{ event.invitations.filter.status='accepted'|length }}</span> /
+                        <span class="badge bg-secondary">{{ event.invitations.all|length }}</span>
+                    </td>
+                    <td>
+                        <div class="btn-group btn-group-sm">
+                            <a href="{% url 'event_detail' pk=event.id %}" class="btn btn-outline-primary">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="{% url 'event_invitations' pk=event.id %}" class="btn btn-outline-info">
+                                <i class="fas fa-users"></i>
+                            </a>
+                            <a href="{% url 'event_update' pk=event.id %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="{% url 'event_delete' pk=event.id %}" class="btn btn-outline-danger">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        You haven't created any events yet.
+        <a href="{% url 'event_create' %}" class="alert-link">Create your first event</a>
+    </div>
+    {% endif %}
+    
+    <!-- Events You're Invited To -->
+    <h2 class="mt-5 mb-3">Events You're Invited To</h2>
+    {% if invited_events %}
+    <div class="row row-cols-1 row-cols-md-3 g-4">
+        {% for event in invited_events %}
+        <div class="col">
+            <div class="card h-100 event-card">
+                {% if event.image %}
+                <img src="{{ event.image.url }}" class="card-img-top" alt="{{ event.title }}">
+                {% else %}
+                <div class="card-img-top bg-secondary text-white d-flex align-items-center justify-content-center" style="height: 180px;">
+                    <i class="fas fa-calendar-day fa-4x"></i>
+                </div>
+                {% endif %}
+                <div class="card-body">
+                    <h5 class="card-title">{{ event.title }}</h5>
+                    <p class="card-text">{{ event.description|truncatechars:100 }}</p>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">
+                            <i class="fas fa-calendar me-1"></i>{{ event.start_date|date:"M d, Y" }}
+                        </small>
+                        <a href="{% url 'event_detail' pk=event.id %}" class="btn btn-sm btn-outline-primary">View Details</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        You haven't been invited to any events yet.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

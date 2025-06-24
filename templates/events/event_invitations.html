@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+
+{% block title %}Invitations for {{ event.title }} - EventRSVP{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'event_detail' pk=event.id %}">{{ event.title }}</a></li>
+            <li class="breadcrumb-item active">Invitations</li>
+        </ol>
+    </nav>
+    
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Invitations for {{ event.title }}</h1>
+        <div>
+            <a href="{% url 'invite_to_event' pk=event.id %}" class="btn btn-primary me-2">
+                <i class="fas fa-plus me-1"></i> Invite Person
+            </a>
+            <a href="{% url 'bulk_invite' pk=event.id %}" class="btn btn-outline-primary">
+                <i class="fas fa-users me-1"></i> Bulk Invite
+            </a>
+        </div>
+    </div>
+    
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-primary">{{ invitations.count }}</h5>
+                    <p class="card-text">Total Invitations</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-success">{{ invitations|filter:"status='accepted'"|length }}</h5>
+                    <p class="card-text">Accepted</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-warning">{{ invitations|filter:"status='pending'"|length }}</h5>
+                    <p class="card-text">Pending</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-danger">{{ invitations|filter:"status='declined'"|length }}</h5>
+                    <p class="card-text">Declined</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Invitations Table -->
+    {% if invitations %}
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Status</th>
+                            <th>Invited</th>
+                            <th>Check-in</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for invitation in invitations %}
+                        <tr>
+                            <td>{{ invitation.name }}</td>
+                            <td>{{ invitation.email }}</td>
+                            <td>
+                                {% if invitation.status == 'accepted' %}
+                                    <span class="badge bg-success">Accepted</span>
+                                {% elif invitation.status == 'declined' %}
+                                    <span class="badge bg-danger">Declined</span>
+                                {% else %}
+                                    <span class="badge bg-warning">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ invitation.created_at|date:"M d, Y" }}</td>
+                            <td>
+                                {% if invitation.checked_in %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check me-1"></i>
+                                        {{ invitation.checked_in_at|date:"M d, g:i A" }}
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Not checked in</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    {% if invitation.status == 'accepted' and not invitation.checked_in and not event.is_past %}
+                                    <a href="{% url 'check_in' pk=event.id invitation_id=invitation.id %}" 
+                                       class="btn btn-outline-success" title="Check In">
+                                        <i class="fas fa-check"></i>
+                                    </a>
+                                    {% endif %}
+                                    <button class="btn btn-outline-info" 
+                                            onclick="copyToClipboard('{% url 'rsvp' uuid=invitation.uuid %}')" 
+                                            title="Copy RSVP Link">
+                                        <i class="fas fa-link"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        No invitations sent yet. <a href="{% url 'invite_to_event' pk=event.id %}" class="alert-link">Send your first invitation</a>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function copyToClipboard(text) {
+    const fullUrl = window.location.origin + text;
+    navigator.clipboard.writeText(fullUrl).then(function() {
+        // Show a temporary success message
+        const btn = event.target.closest('button');
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check"></i>';
+        btn.classList.remove('btn-outline-info');
+        btn.classList.add('btn-success');
+        
+        setTimeout(() => {
+            btn.innerHTML = originalHtml;
+            btn.classList.remove('btn-success');
+            btn.classList.add('btn-outline-info');
+        }, 2000);
+    });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+
+{% block title %}QR Scanner for {{ event.title }} - EventRSVP{% endblock %}
+
+{% block extra_css %}
+<style>
+    #qr-reader {
+        width: 100%;
+        max-width: 500px;
+        margin: 0 auto;
+    }
+    
+    #qr-reader__dashboard_section_csr {
+        display: none !important;
+    }
+    
+    .result-box {
+        margin-top: 20px;
+        padding: 15px;
+        border-radius: 5px;
+        display: none;
+    }
+    
+    .result-success {
+        background-color: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+    }
+    
+    .result-error {
+        background-color: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'event_detail' pk=event.id %}">{{ event.title }}</a></li>
+            <li class="breadcrumb-item active">QR Scanner</li>
+        </ol>
+    </nav>
+    
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white text-center">
+                    <h4 class="mb-0">
+                        <i class="fas fa-qrcode me-2"></i>QR Code Check-in
+                    </h4>
+                    <p class="mb-0">{{ event.title }}</p>
+                </div>
+                <div class="card-body text-center">
+                    <div id="qr-reader"></div>
+                    
+                    <div id="result" class="result-box"></div>
+                    
+                    <div class="mt-4">
+                        <button id="start-scan" class="btn btn-success me-2">
+                            <i class="fas fa-play me-1"></i>Start Scanning
+                        </button>
+                        <button id="stop-scan" class="btn btn-danger" style="display: none;">
+                            <i class="fas fa-stop me-1"></i>Stop Scanning
+                        </button>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <a href="{% url 'event_invitations' pk=event.id %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>Back to Invitations
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let html5QrcodeScanner = null;
+let isScanning = false;
+
+function onScanSuccess(decodedText, decodedResult) {
+    // Stop scanning temporarily
+    if (html5QrcodeScanner) {
+        html5QrcodeScanner.pause();
+    }
+    
+    // Send the UUID to the server for verification
+    fetch('{% url "verify_qr" pk=event.id %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: 'uuid=' + encodeURIComponent(decodedText)
+    })
+    .then(response => response.text().then(text => ({
+        status: response.status,
+        text: text
+    })))
+    .then(data => {
+        const resultDiv = document.getElementById('result');
+        resultDiv.style.display = 'block';
+        
+        if (data.status === 200) {
+            resultDiv.className = 'result-box result-success';
+            resultDiv.innerHTML = '<i class="fas fa-check-circle me-2"></i>' + data.text;
+        } else {
+            resultDiv.className = 'result-box result-error';
+            resultDiv.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>' + data.text;
+        }
+        
+        // Resume scanning after 3 seconds
+        setTimeout(() => {
+            if (html5QrcodeScanner && isScanning) {
+                html5QrcodeScanner.resume();
+            }
+            resultDiv.style.display = 'none';
+        }, 3000);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        const resultDiv = document.getElementById('result');
+        resultDiv.style.display = 'block';
+        resultDiv.className = 'result-box result-error';
+        resultDiv.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Error processing QR code';
+        
+        setTimeout(() => {
+            if (html5QrcodeScanner && isScanning) {
+                html5QrcodeScanner.resume();
+            }
+            resultDiv.style.display = 'none';
+        }, 3000);
+    });
+}
+
+function onScanFailure(error) {
+    // Handle scan failure - usually just ignore
+}
+
+document.getElementById('start-scan').addEventListener('click', function() {
+    if (!html5QrcodeScanner) {
+        html5QrcodeScanner = new Html5QrcodeScanner(
+            "qr-reader",
+            { 
+                fps: 10, 
+                qrbox: { width: 250, height: 250 },
+                aspectRatio: 1.0
+            },
+            false
+        );
+    }
+    
+    html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+    isScanning = true;
+    
+    document.getElementById('start-scan').style.display = 'none';
+    document.getElementById('stop-scan').style.display = 'inline-block';
+});
+
+document.getElementById('stop-scan').addEventListener('click', function() {
+    if (html5QrcodeScanner) {
+        html5QrcodeScanner.clear();
+        html5QrcodeScanner = null;
+    }
+    isScanning = false;
+    
+    document.getElementById('start-scan').style.display = 'inline-block';
+    document.getElementById('stop-scan').style.display = 'none';
+    document.getElementById('result').style.display = 'none';
+});
+</script>
+{% endblock %}

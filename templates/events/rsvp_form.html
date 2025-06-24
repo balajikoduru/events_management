@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% load django_bootstrap5 %}
+
+{% block title %}RSVP to {{ event.title }} - EventRSVP{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white text-center">
+                    <h4 class="mb-0">You're Invited!</h4>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <h2>{{ event.title }}</h2>
+                        <p class="text-muted">Organized by {{ event.created_by.username }}</p>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6 class="card-title">Event Details</h6>
+                                    <ul class="list-unstyled mb-0">
+                                        <li><i class="fas fa-calendar me-2"></i>{{ event.start_date|date:"l, F d, Y" }}</li>
+                                        <li><i class="fas fa-clock me-2"></i>{{ event.start_date|date:"g:i A" }} - {{ event.end_date|date:"g:i A" }}</li>
+                                        <li><i class="fas fa-map-marker-alt me-2"></i>{{ event.location }}</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6 class="card-title">Your Invitation</h6>
+                                    <ul class="list-unstyled mb-0">
+                                        <li><i class="fas fa-user me-2"></i>{{ invitation.name }}</li>
+                                        <li><i class="fas fa-envelope me-2"></i>{{ invitation.email }}</li>
+                                        <li><i class="fas fa-calendar-plus me-2"></i>Invited {{ invitation.created_at|date:"M d, Y" }}</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h6>About This Event</h6>
+                        <p>{{ event.description|linebreaks }}</p>
+                    </div>
+                    
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        
+                        <div class="mb-4">
+                            <h6>Will you attend {{ event.title }}?</h6>
+                            {% bootstrap_field form.response %}
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-reply me-2"></i>Submit RSVP
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
