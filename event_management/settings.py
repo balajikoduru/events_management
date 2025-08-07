@@ -10,7 +10,7 @@ SECRET_KEY = 'django-insecure-your-secret-key-here'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 # Application definition
 INSTALLED_APPS = [
@@ -60,9 +60,9 @@ WSGI_APPLICATION = 'event_project.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'event_db',
+        'NAME': 'events',
         'USER': 'postgres',
-        'PASSWORD': 'postgres',
+        'PASSWORD': '2017139609',
         'HOST': 'localhost',
         'PORT': '5432',
     }
