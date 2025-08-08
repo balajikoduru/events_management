@@ -10,7 +10,6 @@ from django.urls import reverse
 from .models import Event, Invitation
 from .forms import EventForm, InvitationForm, BulkInvitationForm, RSVPForm, CustomUserCreationForm
 from .tasks import send_invitation_email, send_reminder_email
-from django.utils import timezone
 from django.contrib.auth.models import User
 from django.conf import settings
 
