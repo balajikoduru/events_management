@@ -4,10 +4,11 @@ from django.utils import timezone
 from django.conf import settings
 import datetime
 
+
+
 @shared_task
 def send_invitation_email(invitation_id, invitation_url):
     from .models import Invitation
-    
     try:
         invitation = Invitation.objects.get(id=invitation_id)
         event = invitation.event
@@ -40,6 +41,7 @@ def send_invitation_email(invitation_id, invitation_url):
         return f"Invitation email sent to {invitation.email}"
     
     except Exception as e:
+        print(f"Error sending invitation email: {str(e)}")
         return f"Error sending invitation email: {str(e)}"
 
 @shared_task
@@ -73,7 +75,8 @@ def send_reminder_email(invitation_id):
             [invitation.email],
             fail_silently=False,
         )
-        
+        invitation.status = 'sent'
+        invitation.save()
         return f"Reminder email sent to {invitation.email}"
     
     except Exception as e:

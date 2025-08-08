@@ -1,14 +1,19 @@
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login
 from django.contrib import messages
 from django.utils import timezone
-from django.db.models import Q
+from django.db.models import Q,Count
 from django.http import HttpResponse
 from django.urls import reverse
 from .models import Event, Invitation
 from .forms import EventForm, InvitationForm, BulkInvitationForm, RSVPForm, CustomUserCreationForm
 from .tasks import send_invitation_email, send_reminder_email
+from django.utils import timezone
+from django.contrib.auth.models import User
+from django.conf import settings
+
 
 def home(request):
     upcoming_events = Event.objects.filter(
@@ -32,31 +37,47 @@ def register(request):
         form = CustomUserCreationForm()
     return render(request, 'registration/register.html', {'form': form})
 
+
+
+
+
+
 @login_required
 def dashboard(request):
-    # Events created by the user
-    created_events = Event.objects.filter(created_by=request.user).order_by('-start_date')
-    
-    # Events the user is invited to
+    # Base queryset for events created by the user
+    created_events = Event.objects.filter(created_by=request.user).order_by('-start_date').annotate(
+        accepted_count=Count('invitations', filter=Q(invitations__status='accepted')),
+        total_invites=Count('invitations')
+    )
+
+    # Base queryset for events the user is invited to (excluding own created events)
     invited_events = Event.objects.filter(
         invitations__user=request.user
     ).exclude(created_by=request.user).order_by('-start_date')
-    
+
     # Filter parameters
     event_filter = request.GET.get('filter', 'upcoming')
-    
+
     if event_filter == 'past':
         created_events = created_events.filter(end_date__lt=timezone.now())
         invited_events = invited_events.filter(end_date__lt=timezone.now())
     elif event_filter == 'upcoming':
         created_events = created_events.filter(end_date__gte=timezone.now())
         invited_events = invited_events.filter(end_date__gte=timezone.now())
-    
+    elif event_filter == 'all':
+        # no filtering on dates for 'all'
+        pass
+    else:
+        # default fallback to upcoming if filter unknown
+        created_events = created_events.filter(end_date__gte=timezone.now())
+        invited_events = invited_events.filter(end_date__gte=timezone.now())
+
     return render(request, 'events/dashboard.html', {
         'created_events': created_events,
         'invited_events': invited_events,
         'event_filter': event_filter
     })
+
 
 @login_required
 def event_create(request):
@@ -98,7 +119,7 @@ def event_delete(request, pk):
         messages.success(request, f"Event '{event_title}' deleted successfully!")
         return redirect('dashboard')
     
-    return render(request, 'events/event_confirm_delete.html', {'event': event})
+    return render(request, 'events/event_delete.html', {'event': event})
 
 def event_detail(request, pk):
     event = get_object_or_404(Event, pk=pk)
@@ -110,7 +131,7 @@ def event_detail(request, pk):
     if request.user.is_authenticated:
         is_creator = event.created_by == request.user
         try:
-            invitation = Invitation.objects.get(event=event, user=request.user)
+            invitation = Invitation.objects.filter(event=event, user=request.user).first()
             is_invited = True
         except Invitation.DoesNotExist:
             pass
@@ -158,11 +179,15 @@ def invite_to_event(request, pk):
                     email=email,
                     name=name
                 )
-                
+                if not invitation.uuid:
+                    invitation.uuid = uuid.uuid4()
+                    invitation.save()
                 # Send invitation email asynchronously
                 invitation_url = request.build_absolute_uri(
-                    reverse('rsvp', kwargs={'uuid': invitation.uuid})
+                   reverse('rsvp', kwargs={'uuid': invitation.uuid})
                 )
+                #invitation_url = f"http://{settings.LOCAL_IP}:8000{reverse('rsvp', kwargs={'uuid': invitation.uuid})}"
+
                 send_invitation_email.delay(invitation.id, invitation_url)
                 
                 messages.success(request, f"Invitation sent to {email}!")
@@ -203,7 +228,9 @@ def bulk_invite(request, pk):
                     email=email,
                     name=email.split('@')[0]  # Use part of email as name
                 )
-                
+                if not invitation.uuid:
+                    invitation.uuid = uuid.uuid4()
+                    invitation.save()
                 # Send invitation email asynchronously
                 invitation_url = request.build_absolute_uri(
                     reverse('rsvp', kwargs={'uuid': invitation.uuid})
@@ -226,10 +253,18 @@ def bulk_invite(request, pk):
 def event_invitations(request, pk):
     event = get_object_or_404(Event, pk=pk, created_by=request.user)
     invitations = Invitation.objects.filter(event=event).order_by('-created_at')
-    
+
+    # Calculate status counts
+    accepted_count = invitations.filter(status='accepted').count()
+    pending_count = invitations.filter(status='pending').count()
+    declined_count = invitations.filter(status='declined').count()
+
     return render(request, 'events/event_invitations.html', {
         'event': event,
-        'invitations': invitations
+        'invitations': invitations,
+        'accepted_count': accepted_count,
+        'pending_count': pending_count,
+        'declined_count': declined_count,
     })
 
 def rsvp(request, uuid):
@@ -310,5 +345,4 @@ def verify_qr(request, pk):
         
         except Invitation.DoesNotExist:
             return HttpResponse("Invalid QR code or invitation not found.", status=404)
-    
     return HttpResponse("Method not allowed", status=405)

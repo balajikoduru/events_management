@@ -36,7 +36,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'event_project.urls'
+ROOT_URLCONF = 'event_management.urls'
 
 TEMPLATES = [
     {
@@ -54,7 +54,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'event_project.wsgi.application'
+WSGI_APPLICATION = 'event_management.wsgi.application'
 
 # Database
 DATABASES = {
@@ -102,16 +102,25 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Crispy Forms
-CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
+CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrapp5"
 CRISPY_TEMPLATE_PACK = "bootstrap5"
 
 # Email settings (for development)
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'kodurubalaji1234@gmail.com'
+EMAIL_HOST_PASSWORD = 'zlpn stwk lfoi tkot'  # Not your Gmail password!
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 # Celery settings
-CELERY_BROKER_URL = 'redis://localhost:6379/0'
-CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_BROKER_URL = 'redis://172.28.242.180:6379/0'
+CELERY_RESULT_BACKEND = 'redis://172.28.242.180:6379/0'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
+
+#ip address
+#LOCAL_IP = '192.168.245.155'  # Your Wi-Fi IP

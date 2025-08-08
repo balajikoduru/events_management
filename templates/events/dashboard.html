@@ -43,8 +43,8 @@
                     <td>{{ event.start_date|date:"M d, Y" }}</td>
                     <td>{{ event.location }}</td>
                     <td>
-                        <span class="badge bg-success">{{ event.invitations.filter.status='accepted'|length }}</span> /
-                        <span class="badge bg-secondary">{{ event.invitations.all|length }}</span>
+                        <span class="badge bg-success">{{ event.accepted_count }}</span> /
+                        <span class="badge bg-secondary">{{ event.total_invites }}</span>
                     </td>
                     <td>
                         <div class="btn-group btn-group-sm">
